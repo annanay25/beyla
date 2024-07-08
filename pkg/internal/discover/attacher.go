@@ -11,6 +11,7 @@ import (
 	"github.com/grafana/beyla/pkg/beyla"
 	"github.com/grafana/beyla/pkg/internal/ebpf"
 	"github.com/grafana/beyla/pkg/internal/goexec"
+	"github.com/grafana/beyla/pkg/internal/exec"
 	"github.com/grafana/beyla/pkg/internal/helpers"
 	"github.com/grafana/beyla/pkg/internal/imetrics"
 	"github.com/grafana/beyla/pkg/internal/svc"
@@ -119,14 +120,11 @@ func (ta *TraceAttacher) getTracer(ie *Instrumentable) (*ebpf.ProcessTracer, boo
 			tracerType = ebpf.Go
 			programs = filterNotFoundPrograms(newGoTracersGroup(ta.Cfg, ta.Metrics), ie.Offsets)
 		}
-	case svc.InstrumentableJava, svc.InstrumentableNodejs, svc.InstrumentableRuby, svc.InstrumentablePython, svc.InstrumentableDotnet, svc.InstrumentableGeneric, svc.InstrumentableRust:
-		// We are not instrumenting a Go application, we override the programs
-		// list with the generic kernel/socket space filters
-		if ta.reusableTracer != nil {
-			programs = newNonGoTracersGroupUProbes(ta.Cfg, ta.Metrics, ie.FileInfo)
-		} else {
-			programs = newNonGoTracersGroup(ta.Cfg, ta.Metrics, ie.FileInfo)
-		}
+	case svc.InstrumentableNodejs:
+		programs = ta.genericTracers(ie.FileInfo)
+		programs = append(programs, newNodeJSTracersGroup(ta.Cfg, ta.Metrics)...)
+	case svc.InstrumentableJava, svc.InstrumentableRuby, svc.InstrumentablePython, svc.InstrumentableDotnet, svc.InstrumentableGeneric, svc.InstrumentableRust, svc.InstrumentablePHP:
+		programs = ta.genericTracers(ie.FileInfo)
 	default:
 		ta.log.Warn("unexpected instrumentable type. This is basically a bug", "type", ie.Type)
 	}
@@ -173,6 +171,14 @@ func (ta *TraceAttacher) getTracer(ie *Instrumentable) (*ebpf.ProcessTracer, boo
 	return tracer, true
 }
 
+func (ta *TraceAttacher) genericTracers(fi *exec.FileInfo) []ebpf.Tracer {
+	if ta.reusableTracer != nil {
+		return newNonGoTracersGroupUProbes(ta.Cfg, ta.Metrics, fi)
+	}
+
+	return newNonGoTracersGroup(ta.Cfg, ta.Metrics, fi)
+}
+
 func monitorPIDs(tracer *ebpf.ProcessTracer, ie *Instrumentable) {
 	// If the user does not override the service name via configuration
 	// the service name is the name of the found executable
@@ -186,9 +192,9 @@ func monitorPIDs(tracer *ebpf.ProcessTracer, ie *Instrumentable) {
 	}
 
 	// allowing the tracer to forward traces from the discovered PID and its children processes
-	tracer.AllowPID(uint32(ie.FileInfo.Pid), ie.FileInfo.Ns, ie.FileInfo.Service)
+	tracer.AllowPID(uint32(ie.FileInfo.Pid), ie.FileInfo)
 	for _, pid := range ie.ChildPids {
-		tracer.AllowPID(pid, ie.FileInfo.Ns, ie.FileInfo.Service)
+		tracer.AllowPID(pid, ie.FileInfo)
 	}
 }
 
@@ -208,7 +214,7 @@ func (ta *TraceAttacher) notifyProcessDeletion(ie *Instrumentable) {
 		// to avoid that a new process reusing this PID could send traces
 		// unless explicitly allowed
 		ta.Metrics.UninstrumentProcess(ie.FileInfo.ExecutableName())
-		tracer.BlockPID(uint32(ie.FileInfo.Pid), ie.FileInfo.Ns)
+		tracer.BlockPID(uint32(ie.FileInfo.Pid), ie.FileInfo)
 
 		// if there are no more trace instances for a Go program, we need to notify that
 		// the tracer needs to be stopped and deleted.

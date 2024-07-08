@@ -20,9 +20,12 @@ type bpfConnectionInfoT struct {
 }
 
 type bpfGpuKernelLaunchT struct {
-	Flags       uint8
-	Pid         int32
-	Ppid        int32
+	Flags   uint8
+	PidInfo struct {
+		HostPid uint32
+		UserPid uint32
+		Ns      uint32
+	}
 	Comm        [16]int8
 	KernFuncOff uint64
 	GridX       int32
@@ -92,6 +95,9 @@ type bpfHttpInfoT struct {
 		Flags    uint8
 		_        [7]byte
 	}
+	ExtraId uint64
+	TaskTid uint32
+	_       [4]byte
 }
 
 type bpfHttpRequestTrace struct {

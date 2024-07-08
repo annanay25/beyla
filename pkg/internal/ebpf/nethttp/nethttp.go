@@ -28,7 +28,6 @@ import (
 	"github.com/grafana/beyla/pkg/internal/goexec"
 	"github.com/grafana/beyla/pkg/internal/imetrics"
 	"github.com/grafana/beyla/pkg/internal/request"
-	"github.com/grafana/beyla/pkg/internal/svc"
 )
 
 //go:generate $BPF2GO -cc $BPF_CLANG -cflags $BPF_CFLAGS -target amd64,arm64 bpf ../../../../bpf/go_nethttp.c -- -I../../../../bpf/headers -DNO_HEADER_PROPAGATION
@@ -55,12 +54,12 @@ func New(cfg *beyla.Config, metrics imetrics.Reporter) *Tracer {
 	}
 }
 
-func (p *Tracer) AllowPID(pid, ns uint32, svc svc.ID) {
-	p.pidsFilter.AllowPID(pid, ns, svc, ebpfcommon.PIDTypeGo)
+func (p *Tracer) AllowPID(pid uint32, fi *exec.FileInfo) {
+	p.pidsFilter.AllowPID(pid, fi.Ns, fi.Service, ebpfcommon.PIDTypeGo)
 }
 
-func (p *Tracer) BlockPID(pid, ns uint32) {
-	p.pidsFilter.BlockPID(pid, ns)
+func (p *Tracer) BlockPID(pid uint32, fi *exec.FileInfo) {
+	p.pidsFilter.BlockPID(pid, fi.Ns)
 }
 
 func (p *Tracer) supportsContextPropagation() bool {
@@ -83,6 +82,8 @@ func (p *Tracer) Load() (*ebpf.CollectionSpec, error) {
 	}
 	return loader()
 }
+
+func (p *Tracer) SetupTailCalls() {}
 
 func (p *Tracer) Constants(_ *exec.FileInfo, offsets *goexec.Offsets) map[string]any {
 	// Set the field offsets and the logLevel for nethttp BPF program,
@@ -225,6 +226,5 @@ func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 		p.pidsFilter,
 		p.bpfObjects.Events,
 		p.metrics,
-		nil,
 	)(ctx, append(p.closers, &p.bpfObjects), eventsChan)
 }
