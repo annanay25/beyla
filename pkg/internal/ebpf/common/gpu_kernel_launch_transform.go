@@ -17,7 +17,7 @@ import (
 
 type pidKey struct {
 	Pid int32
-	Ns uint32
+	Ns  uint32
 }
 
 var pidMap = map[pidKey]uint64{}
@@ -47,7 +47,7 @@ func ProcessCudaFileInfo(info *exec.FileInfo) {
 		if ELF, err = elf.Open(instrPath); err != nil {
 			slog.Error("can't open ELF file in", "file", instrPath, "error", err)
 		}
-	
+
 		symAddr, err = FindSymbolAddresses(ELF)
 		if err != nil {
 			slog.Error("failed to find symbol addresses", "error", err)
@@ -82,7 +82,7 @@ func EstablishCudaPID(pid uint32, fi *exec.FileInfo) {
 	}
 
 	for _, p := range allPids {
-		k := pidKey{Pid:int32(p), Ns: fi.Ns}
+		k := pidKey{Pid: int32(p), Ns: fi.Ns}
 		baseMap[k] = base
 		pidMap[k] = fi.Ino
 		slog.Info("Setting pid map", "pid", pid, "base", base)
@@ -90,7 +90,7 @@ func EstablishCudaPID(pid uint32, fi *exec.FileInfo) {
 }
 
 func RemoveCudaPID(pid uint32, fi *exec.FileInfo) {
-	k := pidKey{Pid:int32(pid), Ns: fi.Ns}
+	k := pidKey{Pid: int32(pid), Ns: fi.Ns}
 	delete(baseMap, k)
 	delete(pidMap, k)
 }
@@ -122,7 +122,7 @@ func execBase(pid uint32, fi *exec.FileInfo) (uint64, error) {
 }
 
 func symForAddr(pid int32, ns uint32, off uint64) (string, bool) {
-	k := pidKey{Pid:pid, Ns: ns}
+	k := pidKey{Pid: pid, Ns: ns}
 
 	fInfo, ok := pidMap[k]
 	if !ok {
@@ -160,11 +160,17 @@ func ReadGPUKernelLaunchIntoSpan(record *ringbuf.Record) (request.Span, bool, er
 		return request.Span{}, true, fmt.Errorf("failed to find symbol for kernel launch at address %d", event.KernFuncOff)
 	}
 
-	slog.Info("GPU event", "cudaKernel", symToName(symbol))
+	symName := symToName(symbol)
+	slog.Info("GPU event", "cudaKernel", symName)
 
 	return request.Span{
 		Type:   request.EventTypeGPUKernelLaunch,
-		Method: symbol,
+		Method: symName,
+		Pid: request.PidInfo{
+			HostPID:   event.PidInfo.HostPid,
+			UserPID:   event.PidInfo.UserPid,
+			Namespace: event.PidInfo.Ns,
+		},
 	}, false, nil
 }
 

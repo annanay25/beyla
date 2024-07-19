@@ -259,6 +259,12 @@ func getDefinitions(groups AttrGroups) map[Section]AttrReportGroup {
 		ProcessMemoryVirtual.Section:  {SubGroups: []*AttrReportGroup{&processAttributes}},
 		ProcessDiskIO.Section:         {SubGroups: []*AttrReportGroup{&processAttributes}},
 		ProcessNetIO.Section:          {SubGroups: []*AttrReportGroup{&processAttributes}},
+		GPUKernelLaunchCalls.Section: {
+			SubGroups: []*AttrReportGroup{&appAttributes, &appKubeAttributes},
+			Attributes: map[attr.Name]Default{
+				attr.CudaKernelName: true,
+			},
+		},
 	}
 }
 

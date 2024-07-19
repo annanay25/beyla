@@ -133,6 +133,9 @@ const (
 	ServiceNamespace = Name(semconv.ServiceNamespaceKey)
 
 	HostName = Name(semconv.HostNameKey)
+
+	// GPU/Cuda related attributes
+	CudaKernelName = Name("cuda.kernel.name")
 )
 
 // traces related attributes

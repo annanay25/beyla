@@ -24,10 +24,6 @@ import (
 var instrumentedLibs = make(map[uint64]bool)
 var libsMux sync.Mutex
 
-// TODO: We have a way to bring ELF file information to this Tracer struct
-// via the newNonGoTracersGroup / newNonGoTracersGroupUProbes functions. Now,
-// we need to figure out how to pass it to the SharedRingbuf.. not sure if thats
-// possible
 type Tracer struct {
 	pidsFilter ebpfcommon.ServiceFilter
 	cfg        *beyla.Config
@@ -118,7 +114,6 @@ func (p *Tracer) UProbes() map[string]map[string]ebpfcommon.FunctionPrograms {
 		},
 	}
 }
-
 
 func (p *Tracer) SetupTailCalls() {}
 

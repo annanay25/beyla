@@ -152,6 +152,8 @@ func SpanPromGetters(attrName attr.Name) (attributes.Getter[*Span, string], bool
 		getter = func(s *Span) string { return s.ServiceID.Name }
 	case attr.ServiceNamespace:
 		getter = func(s *Span) string { return s.ServiceID.Namespace }
+	case attr.CudaKernelName:
+		getter = func(s *Span) string { return s.Method }
 	default:
 		getter = func(s *Span) string { return s.ServiceID.Metadata[attrName] }
 	}
