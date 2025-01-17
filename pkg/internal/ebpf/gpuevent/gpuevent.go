@@ -291,7 +291,7 @@ func callStack(event *GPUKernelLaunchInfo) string {
 			}
 		}
 
-		return strings.Join(cs, " <- ")
+		return strings.Join(cs, ";")
 	}
 
 	return ""

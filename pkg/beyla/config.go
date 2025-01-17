@@ -16,6 +16,7 @@ import (
 	"github.com/grafana/beyla/pkg/export/instrumentations"
 	"github.com/grafana/beyla/pkg/export/otel"
 	"github.com/grafana/beyla/pkg/export/prom"
+	"github.com/grafana/beyla/pkg/export/pyroscope"
 	"github.com/grafana/beyla/pkg/internal/ebpf/tcmanager"
 	"github.com/grafana/beyla/pkg/internal/filter"
 	"github.com/grafana/beyla/pkg/internal/imetrics"
@@ -149,13 +150,16 @@ type Config struct {
 
 	Attributes Attributes `yaml:"attributes"`
 	// Routes is an optional node. If not set, data will be directly forwarded to exporters.
-	Routes       *transform.RoutesConfig       `yaml:"routes"`
-	NameResolver *transform.NameResolverConfig `yaml:"name_resolver"`
-	Metrics      otel.MetricsConfig            `yaml:"otel_metrics_export"`
-	Traces       otel.TracesConfig             `yaml:"otel_traces_export"`
-	Prometheus   prom.PrometheusConfig         `yaml:"prometheus_export"`
-	Printer      debug.PrintEnabled            `yaml:"print_traces" env:"BEYLA_PRINT_TRACES"`
-	TracePrinter debug.TracePrinter            `yaml:"trace_printer" env:"BEYLA_TRACE_PRINTER"`
+	Routes          *transform.RoutesConfig       `yaml:"routes"`
+	NameResolver    *transform.NameResolverConfig `yaml:"name_resolver"`
+	Metrics         otel.MetricsConfig            `yaml:"otel_metrics_export"`
+	Traces          otel.TracesConfig             `yaml:"otel_traces_export"`
+	Prometheus      prom.PrometheusConfig         `yaml:"prometheus_export"`
+	Printer         debug.PrintEnabled            `yaml:"print_traces" env:"BEYLA_PRINT_TRACES"`
+	TracePrinter    debug.TracePrinter            `yaml:"trace_printer" env:"BEYLA_TRACE_PRINTER"`
+	PyroscopeExport pyroscope.PyroscopeExport     `yaml:"pyroscope_export"`
+
+	PyroscopeEndpoint string `yaml:"pyroscope_endpoint" env:"BEYLA_PYROSCOPE_ENDPOINT"`
 
 	// Exec allows selecting the instrumented executable whose complete path contains the Exec value.
 	Exec       services.RegexpAttr `yaml:"executable_name" env:"BEYLA_EXECUTABLE_NAME"`

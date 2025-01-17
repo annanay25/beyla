@@ -12,6 +12,7 @@ import (
 	"github.com/grafana/beyla/pkg/export/debug"
 	"github.com/grafana/beyla/pkg/export/otel"
 	"github.com/grafana/beyla/pkg/export/prom"
+	pyro "github.com/grafana/beyla/pkg/export/pyroscope"
 	"github.com/grafana/beyla/pkg/internal/filter"
 	"github.com/grafana/beyla/pkg/internal/imetrics"
 	"github.com/grafana/beyla/pkg/internal/pipe/global"
@@ -41,6 +42,7 @@ type nodesMap struct {
 	Prometheus  pipe.Final[[]request.Span]
 	BpfMetrics  pipe.Final[[]request.Span]
 	Printer     pipe.Final[[]request.Span]
+	Pyroscope   pipe.Final[[]request.Span]
 
 	ProcessReport pipe.Final[[]request.Span]
 }
@@ -67,6 +69,7 @@ func otelMetrics(n *nodesMap) *pipe.Final[[]request.Span]                   { re
 func otelTraces(n *nodesMap) *pipe.Final[[]request.Span]                    { return &n.Traces }
 func printer(n *nodesMap) *pipe.Final[[]request.Span]                       { return &n.Printer }
 func prometheus(n *nodesMap) *pipe.Final[[]request.Span]                    { return &n.Prometheus }
+func pyroscope(n *nodesMap) *pipe.Final[[]request.Span]                     { return &n.Pyroscope }
 func bpfMetrics(n *nodesMap) *pipe.Final[[]request.Span]                    { return &n.BpfMetrics }
 
 func processReport(n *nodesMap) *pipe.Final[[]request.Span] { return &n.ProcessReport }
@@ -122,6 +125,7 @@ func newGraphBuilder(ctx context.Context, config *beyla.Config, ctxInfo *global.
 	pipe.AddFinalProvider(gnb, alloyTraces, alloy.TracesReceiver(ctx, gb.ctxInfo, &config.TracesReceiver, config.Attributes.Select))
 
 	pipe.AddFinalProvider(gnb, printer, debug.PrinterNode(config.TracePrinter))
+	pipe.AddFinalProvider(gnb, pyroscope, pyro.ProfileNode(config.PyroscopeExport, config.PyroscopeEndpoint))
 
 	// process subpipeline will start another pipeline only to collect and export data
 	// about the processes of an instrumented application
